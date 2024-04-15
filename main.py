@@ -14,6 +14,16 @@ REFRESH_TOKEN = st.secrets['refresh_token']
 TOKEN_URL = "https://api.netatmo.com/oauth2/token"
 DATA_URL = "https://api.netatmo.com/api/getstationsdata"
 
+def get_access_token():
+    data = {
+        'grant_type': 'refresh_token',
+        'refresh_token': REFRESH_TOKEN,
+        'client_id': CLIENT_ID,
+        'client_secret': CLIENT_SECRET
+    }
+    response = requests.post(TOKEN_URL, data=data)
+    return response.json()['access_token']
+
 def fetch_data(access_token):
     params = {
         'access_token': access_token,
