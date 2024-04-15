@@ -50,20 +50,48 @@ def get_access_token():
 
 
 def fetch_data(access_token):
-    logger.info("Fetching temperature data...")
-    end_time = datetime.now()
-    start_time = end_time - timedelta(days=7)
-    params = {
+    logger.info("Fetching devices...")
+    devices_params = {
         'access_token': access_token,
-        'get_favorites': False,
-        'date_begin': int(start_time.timestamp()),
-        'date_end': int(end_time.timestamp()),
-        'required_data_type': 'app_max_polling_rmp'  # Request maximum data resolution
+        'get_favorites': False
     }
-    response = requests.get(DATA_URL, params=params)
-    logger.info("Temperature data fetched successfully.")
-    return response.json()  # Ensure this returns a parsed JSON
+    try:
+        devices_response = requests.post(DEVICES_URL, params=devices_params)
+        devices_response.raise_for_status()
+        devices_data = devices_response.json()['body']['devices']
+    except requests.exceptions.HTTPError as err:
+        logger.error(f'HTTP error occurred while fetching devices: {err}')
+        return []
+    except Exception as err:
+        logger.error(f'Error occurred while fetching devices: {err}')
+        return []
 
+    all_measurements = []
+    for device in devices_data:
+        device_id = device['_id']
+        logger.info(f"Fetching measurements for device: {device['station_name']}")
+        measurements_params = {
+            'access_token': access_token,
+            'device_id': device_id,
+            'scale': '30min',
+            'type': 'Temperature',
+            'date_begin': int((datetime.now() - timedelta(days=7)).timestamp()),
+            'date_end': int(datetime.now().timestamp()),
+            'optimize': False,
+            'real_time': False
+        }
+        try:
+            measurements_response = requests.post(DATA_URL, params=measurements_params)
+            measurements_response.raise_for_status()
+            measurements_data = measurements_response.json()['body']
+            all_measurements.extend(measurements_data)
+        except requests.exceptions.HTTPError as err:
+            logger.error(f'HTTP error occurred while fetching measurements for device {device["station_name"]}: {err}')
+        except Exception as err:
+            logger.error(f'Error occurred while fetching measurements for device {device["station_name"]}: {err}')
+
+    logger.info("Temperature data fetched successfully.")
+    return all_measurements
 
 
 def prepare_data():
