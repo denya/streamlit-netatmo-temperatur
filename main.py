@@ -58,7 +58,7 @@ def fetch_data(access_token):
     try:
         devices_response = requests.post(DEVICES_URL, params=devices_params)
         devices_response.raise_for_status()
-        devices_data = devices_response.json()['body']['devices']
+        devices_data = devices_response.json()
     except requests.exceptions.HTTPError as err:
         logger.error(f'HTTP error occurred while fetching devices: {err}')
         return []
@@ -67,9 +67,13 @@ def fetch_data(access_token):
         return []
 
     all_measurements = []
-    for device in devices_data:
-        device_id = device['_id']
-        logger.info(f"Fetching measurements for device: {device['station_name']}")
+    for device_data in devices_data.get('devices', []):
+        device_id = device_data.get('_id')
+        if not device_id:
+            logger.warning(f"Skipping device due to missing '_id' key: {device_data}")
+            continue
+
+        logger.info(f"Fetching measurements for device: {device_data.get('station_name', 'Unknown')}")
         measurements_params = {
             'access_token': access_token,
             'device_id': device_id,
