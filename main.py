@@ -73,31 +73,37 @@ def prepare_data():
     max_temps = {}
     for device in devices:
         device_name = device['station_name']
+        device_type = device['type']
         modules = device.get('modules', [])
         device_data_counts[device_name] = 0
         max_temp = float('-inf')
-        # Including main device temperature check
+        
+        # Check for temperature in the main device
         if 'dashboard_data' in device and 'Temperature' in device['dashboard_data']:
             data_list.append({
                 'Time': datetime.fromtimestamp(device['dashboard_data']['time_utc']),
                 'Temperature': device['dashboard_data']['Temperature'],
-                'Device': device_name + ' (Main Unit)'
+                'Device': device_name,
+                'Module': 'Main Unit'
             })
             device_data_counts[device_name] += 1
             max_temp = max(max_temp, device['dashboard_data']['Temperature'])
-        # Including modules temperature check
+
+        # Check for temperature in additional modules
         for module in modules:
+            module_name = module['module_name']
             if 'dashboard_data' in module and 'Temperature' in module['dashboard_data']:
                 data_list.append({
                     'Time': datetime.fromtimestamp(module['dashboard_data']['time_utc']),
                     'Temperature': module['dashboard_data']['Temperature'],
-                    'Device': device_name + ' (' + module['module_name'] + ')'
+                    'Device': device_name,
+                    'Module': module_name
                 })
                 device_data_counts[device_name] += 1
                 max_temp = max(max_temp, module['dashboard_data']['Temperature'])
-        
+
         if max_temp != float('-inf'):
-            max_temp_time = max([point['Time'] for point in data_list if point['Device'] == device_name or device_name in point['Device']])
+            max_temp_time = max([point['Time'] for point in data_list if point['Device'] == device_name])
             max_temps[device_name] = (max_temp, max_temp_time)
 
     for device, count in device_data_counts.items():
@@ -110,6 +116,7 @@ def prepare_data():
     if not df.empty:
         df.sort_values('Time', inplace=True)
     return df
+
 
 def plot_temperatures(df):
     fig = px.line(df, x='Time', y='Temperature', color='Device', title='Temperature Over Time',
