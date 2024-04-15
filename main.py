@@ -57,10 +57,13 @@ def fetch_data(access_token):
         'access_token': access_token,
         'get_favorites': False,
         'date_begin': int(start_time.timestamp()),
-        'date_end': int(end_time.timestamp())
+        'date_end': int(end_time.timestamp()),
+        'required_data_type': 'app_max_polling_rmp'  # Request maximum data resolution
     }
     response = requests.get(DATA_URL, params=params)
+    logger.info("Temperature data fetched successfully.")
     return response.json()  # Ensure this returns a parsed JSON
+
 
 
 def prepare_data():
